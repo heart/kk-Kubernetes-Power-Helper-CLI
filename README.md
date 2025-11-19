@@ -87,6 +87,13 @@ Set `INSTALL_PATH` or `KK_URL` in the environment before the command if you need
    kk sh api -- /bin/bash
    ```
 
+## Pattern Matching That Works for You
+
+- **Regex everywhere** – Every `<pattern>` argument is treated as a regular expression and piped into `awk`/`grep`, so a short substring (`api`) or a precise regex (`^api-[0-9]+`) works across pods, deployments, and services without new syntax to learn.
+- **Single target guarantee** – Helpers such as `select_pod_by_pattern` and `select_deploy_by_pattern` always resolve to exactly one resource. If many results match, `kk` launches `fzf` (when installed) or prints a numbered list so you can pick by index. No more copy/pasting names from `kubectl get`.
+- **Productivity boost** – You type less (`kk logs api`) yet keep kubectl semantics, and narrowing down the right pod takes seconds instead of juggling `grep`, shell loops, or repeated `-n` flags.
+- **Safer workflows** – Because `kk` insists on an explicit selection when multiple resources match, disruptive actions like `kk restart web` never hit the wrong deployment silently.
+
 ## Command Highlights
 
 | Command                          | Description                                                                                         |
