@@ -266,7 +266,7 @@ cmd_logs() {
         args=(logs -n "$NAMESPACE" "$p" -f)
         [[ -n "$container" ]] && args+=("-c" "$container")
         args+=("${extra_args[@]}")
-        kubectl "${args[@]}" 2>&1 | sed "s/^/[$p] /"
+        kubectl "${args[@]}" 2>&1 | sed -u "s/^/[$p] /"
       ) &
     done
     wait
@@ -276,7 +276,7 @@ cmd_logs() {
       [[ -n "$container" ]] && args+=("-c" "$container")
       args+=("${extra_args[@]}")
       echo "==== pod: $p ====" >&2
-      kubectl "${args[@]}" 2>&1 | sed "s/^/[$p] /"
+      kubectl "${args[@]}" 2>&1 | sed -u "s/^/[$p] /"
     done
   fi | {
     if [[ -n "$grep_pattern" ]]; then
