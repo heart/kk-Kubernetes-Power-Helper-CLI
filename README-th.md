@@ -87,7 +87,7 @@ curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CL
    kk sh api -- /bin/bash
    ```
 
-## การจับคู่ชื่อที่ฉลาดขึ้น
+## ⭐️⭐️⭐️ การจับคู่ชื่อที่ฉลาดขึ้น ⭐️⭐️⭐️
 
 - **ใช้ regex ได้ทุกที่** – ทุก `<pattern>` จะถูกส่งต่อให้ `awk`/`grep` เหมือน regex ปกติ ดังนั้นจะพิมพ์แค่คำบางส่วน (`api`) หรือ regex เต็มรูป (`^api-[0-9]+`) ก็ใช้ได้กับ pod, deployment, service โดยไม่ต้องจำไวยากรณ์ใหม่
 - **เลือกให้เหลือเป้าหมายเดียว** – ฟังก์ชันอย่าง `select_pod_by_pattern` และ `select_deploy_by_pattern` จะคืนค่าเพียงรายการเดียวเสมอ ถ้ามีหลายตัว `kk` จะเปิด `fzf` (ถ้ามี) หรือแสดงรายการพร้อมหมายเลขให้เลือกเพียงครั้งเดียว ไม่ต้อง copy/paste ชื่อจาก `kubectl get`
@@ -96,21 +96,21 @@ curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CL
 
 ## Command Highlights
 
-| คำสั่ง                         | คำอธิบาย                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `kk ns [show\|set\|list]`        | แสดง/กำหนด หรือเลือก namespace แบบ interactive ที่เก็บไว้ใน `~/.kk`                                  |
-| `kk svc [pattern]`               | แสดงรายชื่อ service (มี header และกรองด้วย regex ได้)                                                 |
-| `kk pods [pattern]`              | แสดงรายชื่อ pod (มี header และกรองด้วย regex ได้)                                                     |
-| `kk sh <pattern> [-- cmd]`       | exec เข้า pod ที่หาได้จาก pattern                                                                     |
-| `kk logs <pattern> [options]`    | tail log หลาย pod พร้อมตัวเลือก container/grep/follow                                                 |
-| `kk images <pattern>`            | แสดง image ที่ใช้ใน pod (ต้องการ `jq`)                                                                 |
-| `kk restart <deploy-pattern>`    | rollout restart deployment พร้อมโหมดเลือกแบบ interactive เมื่อมีหลายตัว                               |
-| `kk pf <pattern> <local:remote>` | port-forward ไปยัง pod                                                                                 |
-| `kk desc <pattern>`              | `kubectl describe` pod ตาม pattern                                                                     |
-| `kk top [pattern]`               | แสดง CPU/Memory ของ pod และกรองด้วยชื่อได้                                                            |
-| `kk events`                      | แสดง events ล่าสุดใน namespace ปัจจุบัน                                                               |
-| `kk deploys`                     | สรุป deployment: ready/desired และ image ตัวแรก (ใช้ `jq` หากมี)                                       |
-| `kk ctx [context]`               | แสดงหรือสลับ `kubectl context`                                                                        |
+| คำสั่ง                           | คำอธิบาย                                                                |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| `kk ns [show\|set\|list]`        | แสดง/กำหนด หรือเลือก namespace แบบ interactive ที่เก็บไว้ใน `~/.kk`     |
+| `kk svc [pattern]`               | แสดงรายชื่อ service (มี header และกรองด้วย regex ได้)                   |
+| `kk pods [pattern]`              | แสดงรายชื่อ pod (มี header และกรองด้วย regex ได้)                       |
+| `kk sh <pattern> [-- cmd]`       | exec เข้า pod ที่หาได้จาก pattern                                       |
+| `kk logs <pattern> [options]`    | tail log หลาย pod พร้อมตัวเลือก container/grep/follow                   |
+| `kk images <pattern>`            | แสดง image ที่ใช้ใน pod (ต้องการ `jq`)                                  |
+| `kk restart <deploy-pattern>`    | rollout restart deployment พร้อมโหมดเลือกแบบ interactive เมื่อมีหลายตัว |
+| `kk pf <pattern> <local:remote>` | port-forward ไปยัง pod                                                  |
+| `kk desc <pattern>`              | `kubectl describe` pod ตาม pattern                                      |
+| `kk top [pattern]`               | แสดง CPU/Memory ของ pod และกรองด้วยชื่อได้                              |
+| `kk events`                      | แสดง events ล่าสุดใน namespace ปัจจุบัน                                 |
+| `kk deploys`                     | สรุป deployment: ready/desired และ image ตัวแรก (ใช้ `jq` หากมี)        |
+| `kk ctx [context]`               | แสดงหรือสลับ `kubectl context`                                          |
 
 ทุกคำสั่งจะเติม `-n "$NAMESPACE"` ให้โดยอัตโนมัติ จากค่าใน `~/.kk`
 
