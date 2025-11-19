@@ -68,8 +68,8 @@ Alternatively, copy the single `kk` script into a directory on your `PATH`.
 ## Command Highlights
 
 | Command                          | Description                                                                                         |
-| -------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `kk ns [show                     | set]`                                                                                               | Manage the namespace stored in `~/.kk`. |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `kk ns [show\|set]`              | Manage the namespace stored in `~/.kk`.                                                             |
 | `kk pods [pattern]`              | List pods (keeps header, optional regex filter).                                                    |
 | `kk sh <pattern> [-- cmd]`       | Exec into a pod resolved by pattern.                                                                |
 | `kk logs <pattern> [options]`    | Stream logs from one or many pods, with container/grep/follow options.                              |
