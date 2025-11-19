@@ -36,8 +36,8 @@ If you already know `kubectl`, `kk` simply helps you type less while keeping the
 ## Installation
 
 ```bash
-git clone https://example.com/your/kk-repo.git
-cd k8s-kk
+git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
+cd kk-Kubernetes-Power-Helper-CLI
 chmod +x kk
 # Optionally place kk somewhere on your PATH
 ln -s "$(pwd)/kk" /usr/local/bin/kk  # adjust path as needed
@@ -67,20 +67,20 @@ Alternatively, copy the single `kk` script into a directory on your `PATH`.
 
 ## Command Highlights
 
-| Command | Description |
-| ------- | ----------- |
-| `kk ns [show|set]` | Manage the namespace stored in `~/.kk`. |
-| `kk pods [pattern]` | List pods (keeps header, optional regex filter). |
-| `kk sh <pattern> [-- cmd]` | Exec into a pod resolved by pattern. |
-| `kk logs <pattern> [options]` | Stream logs from one or many pods, with container/grep/follow options. |
-| `kk images <pattern>` | Show images used by pods (requires `jq`). |
-| `kk restart <deploy-pattern>` | Rollout restart a deployment, with interactive selection when needed. |
-| `kk pf <pattern> <local:remote>` | Port-forward to a pod. |
-| `kk desc <pattern>` | Describe a pod. |
-| `kk top [pattern]` | Display pod CPU/memory usage, filtered by name if provided. |
-| `kk events` | Show recent events in the current namespace. |
-| `kk deploys` | Summarize deployments; includes ready/desired and first container image (uses `jq` when available). |
-| `kk ctx [context]` | Show contexts or switch the active `kubectl` context. |
+| Command                          | Description                                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `kk ns [show                     | set]`                                                                                               | Manage the namespace stored in `~/.kk`. |
+| `kk pods [pattern]`              | List pods (keeps header, optional regex filter).                                                    |
+| `kk sh <pattern> [-- cmd]`       | Exec into a pod resolved by pattern.                                                                |
+| `kk logs <pattern> [options]`    | Stream logs from one or many pods, with container/grep/follow options.                              |
+| `kk images <pattern>`            | Show images used by pods (requires `jq`).                                                           |
+| `kk restart <deploy-pattern>`    | Rollout restart a deployment, with interactive selection when needed.                               |
+| `kk pf <pattern> <local:remote>` | Port-forward to a pod.                                                                              |
+| `kk desc <pattern>`              | Describe a pod.                                                                                     |
+| `kk top [pattern]`               | Display pod CPU/memory usage, filtered by name if provided.                                         |
+| `kk events`                      | Show recent events in the current namespace.                                                        |
+| `kk deploys`                     | Summarize deployments; includes ready/desired and first container image (uses `jq` when available). |
+| `kk ctx [context]`               | Show contexts or switch the active `kubectl` context.                                               |
 
 All subcommands automatically prepend `-n "$NAMESPACE"` using the namespace from `~/.kk`.
 
