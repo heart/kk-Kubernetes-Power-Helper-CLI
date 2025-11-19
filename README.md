@@ -30,6 +30,7 @@ If you already know `kubectl`, `kk` simply helps you type less while keeping the
 - **Namespace memory** – `kk ns set` persists the namespace inside `~/.kk`, so every subcommand automatically injects `-n "$NAMESPACE"` and you never retype it.
 - **Pattern-first selection** – commands such as `kk sh`, `kk desc`, and `kk restart` reuse a shared selector that filters pods/deployments with regex and launches an `fzf` picker (`--height=40% --border`) when multiple results exist.
 - **Parallel log streaming** – `kk logs` spins background `kubectl logs` processes for every matching pod, prefixes each line with `[pod]`, and still lets you `-g/--grep` or `-f/--follow` just like plain kubectl.
+- **⭐️ Multi-replica debugging** – when a deployment has many replicas, `kk logs api -g "traceId=123"` lets you hunt across every pod simultaneously instead of copy/pasting each name into `kubectl logs`. You immediately see which replica emitted the line because the prefix includes the pod name, making flaky issues and sharded traces much easier to track down.
 - **Guard rails built-in** – port-forward failures print actionable reasons, context switches confirm success, and deployment restarts always echo the exact target so you know what is happening before kubectl runs.
 
 ## Requirements
