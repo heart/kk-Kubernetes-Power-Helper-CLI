@@ -20,10 +20,17 @@ If you already know `kubectl`, `kk` simply helps you type less while keeping the
 ## Features
 
 - Namespace helper (`kk ns show|set`) backed by `~/.kk`.
-- Pod utilities: list, exec shell, logs, describe, port-forward.
+- Pod utilities and service listing: list, exec shell, logs, describe, port-forward.
 - Troubleshooting helpers: multi-pod log streaming, `kubectl top` filtering, recent events.
 - Deployment automation: quick restarts and human-readable summaries (with `jq`).
 - Context management (`kk ctx`) to switch Kubernetes contexts without touching namespaces.
+
+## How kk saves time in real workflows
+
+- **Namespace memory** – `kk ns set` persists the namespace inside `~/.kk`, so every subcommand automatically injects `-n "$NAMESPACE"` and you never retype it.
+- **Pattern-first selection** – commands such as `kk sh`, `kk desc`, and `kk restart` reuse a shared selector that filters pods/deployments with regex and launches an `fzf` picker (`--height=40% --border`) when multiple results exist.
+- **Parallel log streaming** – `kk logs` spins background `kubectl logs` processes for every matching pod, prefixes each line with `[pod]`, and still lets you `-g/--grep` or `-f/--follow` just like plain kubectl.
+- **Guard rails built-in** – port-forward failures print actionable reasons, context switches confirm success, and deployment restarts always echo the exact target so you know what is happening before kubectl runs.
 
 ## Requirements
 
@@ -90,9 +97,18 @@ Set `INSTALL_PATH` or `KK_URL` in the environment before the command if you need
 ## ⭐️⭐️⭐️ Pattern Matching That Works for You ⭐️⭐️⭐️
 
 - **Regex everywhere** – Every `<pattern>` argument is treated as a regular expression and piped into `awk`/`grep`, so a short substring (`api`) or a precise regex (`^api-[0-9]+`) works across pods, deployments, and services without new syntax to learn.
-- **Single target guarantee** – Helpers such as `select_pod_by_pattern` and `select_deploy_by_pattern` always resolve to exactly one resource. If many results match, `kk` launches `fzf` (when installed) or prints a numbered list so you can pick by index. No more copy/pasting names from `kubectl get`.
+- **Single target guarantee** – Helpers such as `select_pod_by_pattern` and `select_deploy_by_pattern` always resolve to exactly one resource. If many results match, `kk` launches `fzf --height=40% --border` (when installed) or prints a numbered list so you can pick by index. No more copy/pasting names from `kubectl get`.
 - **Productivity boost** – You type less (`kk logs api`) yet keep kubectl semantics, and narrowing down the right pod takes seconds instead of juggling `grep`, shell loops, or repeated `-n` flags.
 - **Safer workflows** – Because `kk` insists on an explicit selection when multiple resources match, disruptive actions like `kk restart web` never hit the wrong deployment silently.
+- **Practical example**
+
+  ```bash
+  kk pods '^api-'
+  kk logs '^api-' -f -g ERROR
+  kk restart '^api-web'
+  ```
+
+  Three keystroke-sized regexes get you the pods, live logs, and a targeted restart—all without retyping namespaces or copy/pasting pod names.
 
 ## Command Highlights
 

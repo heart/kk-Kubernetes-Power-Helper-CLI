@@ -86,7 +86,7 @@ cmd_ns() {
       fi
       if command -v fzf >/dev/null 2>&1; then
         local header="Select namespace to set as kk default (current: ${NAMESPACE})"
-        selected=$(printf "%s\n" "$namespaces" | fzf --prompt="ns> " --header="$header")
+        selected=$(printf "%s\n" "$namespaces" | fzf --height=40% --border --prompt="ns> " --header="$header")
       else
         echo "Select the namespace to use as kk default (current: ${NAMESPACE})" >&2
         echo "Available namespaces:" >&2
@@ -117,7 +117,7 @@ cmd_pods() {
     kubectl get pods -n "$NAMESPACE"
   else
     # keep header row (NR==1) and filter pod name column by regex
-    kubectl get pods -n "$NAMESPACE" | awk 'NR==1 || $1 ~ /'"$pattern"'/' 
+    kubectl get pods -n "$NAMESPACE" | awk -v p="$pattern" 'NR==1 || $1 ~ p'
   fi
 }
 
@@ -133,7 +133,7 @@ cmd_svc() {
   if [[ -z "$pattern" ]]; then
     printf "%s\n" "$output"
   else
-    awk 'NR==1 || $1 ~ /'"$pattern"'/' <<< "$output"
+    awk -v p="$pattern" 'NR==1 || $1 ~ p' <<< "$output"
   fi
 }
 
@@ -143,7 +143,7 @@ select_pod_by_pattern() {
 
   # list pod names and grep by pattern
   local pods
-  pods=$(kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep "$pattern" || true)
+  pods=$(kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep -E -- "$pattern" || true)
 
   if [[ -z "$pods" ]]; then
     echo "No pods found matching pattern: $pattern" >&2
@@ -160,7 +160,7 @@ select_pod_by_pattern() {
 
   # multiple pods: pick via fzf if available, otherwise ask user
   if command -v fzf >/dev/null 2>&1; then
-    printf "%s\n" "$pods" | fzf --prompt="Select pod> "
+    printf "%s\n" "$pods" | fzf --height=40% --border --prompt="Select pod> "
   else
     echo "Multiple pods found:" >&2
     nl -ba <<< "$pods" >&2
@@ -182,7 +182,7 @@ select_deploy_by_pattern() {
   load_namespace
 
   local deploys
-  deploys=$(kubectl get deploy -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep "$pattern" || true)
+  deploys=$(kubectl get deploy -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep -E -- "$pattern" || true)
 
   if [[ -z "$deploys" ]]; then
     echo "No deployments found matching pattern: $pattern" >&2
@@ -198,7 +198,7 @@ select_deploy_by_pattern() {
   fi
 
   if command -v fzf >/dev/null 2>&1; then
-    printf "%s\n" "$deploys" | fzf --prompt="Select deployment> "
+    printf "%s\n" "$deploys" | fzf --height=40% --border --prompt="Select deployment> "
   else
     echo "Multiple deployments found:" >&2
     nl -ba <<< "$deploys" >&2
@@ -278,7 +278,7 @@ cmd_logs() {
   done
 
   local pods
-  pods=$(kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep "$pattern" || true)
+  pods=$(kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep -E -- "$pattern" || true)
 
   if [[ -z "$pods" ]]; then
     echo "No pods found matching pattern: $pattern" >&2
@@ -309,7 +309,7 @@ cmd_logs() {
     done
   fi | {
     if [[ -n "$grep_pattern" ]]; then
-      grep --line-buffered -E "$grep_pattern" || true
+      grep --line-buffered -E -- "$grep_pattern" || true
     else
       cat
     fi
@@ -333,7 +333,7 @@ cmd_images() {
 
   local pods
   pods=$(kubectl get pods -n "$NAMESPACE" -o json | \
-    jq -r --arg p "$pattern" '.items[] | select(.metadata.name | test($p)) | .metadata.name')
+    jq -r --arg p "$pattern" '.items[]? | select(.metadata.name? | test($p)) | .metadata.name')
 
   if [[ -z "$pods" ]]; then
     echo "No pods found matching: $pattern" >&2
@@ -384,7 +384,10 @@ cmd_pf() {
 
   local extra_args=("$@")
   echo "Port-forwarding pod: $pod (namespace: $NAMESPACE) on $port_spec" >&2
-  kubectl port-forward -n "$NAMESPACE" "$pod" "$port_spec" "${extra_args[@]}"
+  kubectl port-forward -n "$NAMESPACE" "$pod" "$port_spec" "${extra_args[@]}" || {
+    echo "Port-forward failed (port in use, pod restarting, or network issue)" >&2
+    exit 1
+  }
 }
 
 cmd_desc() {
@@ -414,7 +417,7 @@ cmd_top() {
   if [[ -z "$pattern" ]]; then
     printf "%s\n" "$output"
   else
-    awk 'NR==1 || $1 ~ /'"$pattern"'/' <<< "$output"
+    awk -v p="$pattern" 'NR==1 || $1 ~ p' <<< "$output"
   fi
 }
 
@@ -466,9 +469,9 @@ cmd_ctx() {
   if [[ -z "$context" ]]; then
     kubectl config get-contexts
   else
-    if kubectl config use-context "$context"; then
-      echo "Switched to context: $context"
-    fi
+    kubectl config use-context "$context" \
+      && echo "Switched to context: $context" \
+      || { echo "Failed to switch context: $context" >&2; exit 1; }
   fi
 }
 
