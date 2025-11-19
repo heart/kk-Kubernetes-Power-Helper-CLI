@@ -35,6 +35,7 @@ kk - Kubernetes Power Helper CLI (wrapper around kubectl)
 Usage:
   kk ns [show|set <namespace>]              Manage saved namespace
   kk pods [name-substring]                  List pods (optional regex filter)
+  kk svc [name-substring]                   List services (optional regex filter)
   kk sh <name-substring> [-- COMMAND...]    Exec into matching pod
   kk logs <name-substring> [-c ...] [...]   Stream logs from pods (with filters)
   kk images <name-substring>                Show container images for pod(s)
@@ -88,6 +89,22 @@ cmd_pods() {
   else
     # keep header row (NR==1) and filter pod name column by regex
     kubectl get pods -n "$NAMESPACE" | awk 'NR==1 || $1 ~ /'"$pattern"'/' 
+  fi
+}
+
+cmd_svc() {
+  load_namespace
+  local pattern="${1:-}"
+
+  local output
+  if ! output=$(kubectl get svc -n "$NAMESPACE"); then
+    return $?
+  fi
+
+  if [[ -z "$pattern" ]]; then
+    printf "%s\n" "$output"
+  else
+    awk 'NR==1 || $1 ~ /'"$pattern"'/' <<< "$output"
   fi
 }
 
@@ -441,6 +458,7 @@ main() {
   case "$cmd" in
     ns)      cmd_ns "$@" ;;
     pods)    cmd_pods "$@" ;;
+    svc)     cmd_svc "$@" ;;
     sh|shell) cmd_sh "$@" ;;
     logs)    cmd_logs "$@" ;;
     images)  cmd_images "$@" ;;

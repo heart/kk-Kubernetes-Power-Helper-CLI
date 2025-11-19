@@ -92,6 +92,7 @@ curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CL
 | คำสั่ง                         | คำอธิบาย                                                                                              |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `kk ns [show\|set]`              | จัดการ namespace ที่เก็บไว้ใน `~/.kk`                                                                  |
+| `kk svc [pattern]`               | แสดงรายชื่อ service (มี header และกรองด้วย regex ได้)                                                 |
 | `kk pods [pattern]`              | แสดงรายชื่อ pod (มี header และกรองด้วย regex ได้)                                                     |
 | `kk sh <pattern> [-- cmd]`       | exec เข้า pod ที่หาได้จาก pattern                                                                     |
 | `kk logs <pattern> [options]`    | tail log หลาย pod พร้อมตัวเลือก container/grep/follow                                                 |
