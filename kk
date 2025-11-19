@@ -33,7 +33,7 @@ usage() {
 kk - Kubernetes Power Helper CLI (wrapper around kubectl)
 
 Usage:
-  kk ns [show|set <namespace>]              Manage saved namespace
+  kk ns [show|set <namespace>|list]         Manage saved namespace (list uses interactive picker)
   kk pods [name-substring]                  List pods (optional regex filter)
   kk svc [name-substring]                   List services (optional regex filter)
   kk sh <name-substring> [-- COMMAND...]    Exec into matching pod
@@ -73,6 +73,33 @@ cmd_ns() {
       fi
       save_namespace "$ns"
       echo "Set namespace to: ${ns}"
+      ;;
+    list)
+      local namespaces selected
+      if ! namespaces=$(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'); then
+        echo "Failed to list namespaces via kubectl" >&2
+        exit 1
+      fi
+      if [[ -z "$namespaces" ]]; then
+        echo "No namespaces returned by cluster" >&2
+        exit 1
+      fi
+      if command -v fzf >/dev/null 2>&1; then
+        selected=$(printf "%s\n" "$namespaces" | fzf --prompt="Select namespace> ")
+      else
+        echo "Available namespaces:" >&2
+        nl -ba <<< "$namespaces" >&2
+        echo -n "Select index: " >&2
+        local idx
+        read -r idx
+        selected=$(nl -ba <<< "$namespaces" | awk -v i="$idx" '$1 == i { $1=""; sub(/^ /,""); print }')
+      fi
+      if [[ -z "$selected" ]]; then
+        echo "No namespace selected" >&2
+        exit 1
+      fi
+      save_namespace "$selected"
+      echo "Set namespace to: ${selected}"
       ;;
     *)
       echo "Unknown ns action: $action" >&2
