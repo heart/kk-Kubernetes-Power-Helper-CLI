@@ -85,8 +85,10 @@ cmd_ns() {
         exit 1
       fi
       if command -v fzf >/dev/null 2>&1; then
-        selected=$(printf "%s\n" "$namespaces" | fzf --prompt="Select namespace> ")
+        local header="Select namespace to set as kk default (current: ${NAMESPACE})"
+        selected=$(printf "%s\n" "$namespaces" | fzf --prompt="ns> " --header="$header")
       else
+        echo "Select the namespace to use as kk default (current: ${NAMESPACE})" >&2
         echo "Available namespaces:" >&2
         nl -ba <<< "$namespaces" >&2
         echo -n "Select index: " >&2
