@@ -35,15 +35,37 @@ If you already know `kubectl`, `kk` simply helps you type less while keeping the
 
 ## Installation
 
+### Manual symlink
+
 ```bash
 git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
 cd kk-Kubernetes-Power-Helper-CLI
 chmod +x kk
-# Optionally place kk somewhere on your PATH
 ln -s "$(pwd)/kk" /usr/local/bin/kk  # adjust path as needed
 ```
 
-Alternatively, copy the single `kk` script into a directory on your `PATH`.
+Alternatively, copy the `kk` script anywhere on your `PATH`.
+
+### install-kk.sh (offline-friendly)
+
+Clone (or copy) this repo onto a machine with access to the target host, then run:
+
+```bash
+cd kk-Kubernetes-Power-Helper-CLI
+sudo bash install-kk.sh                              # downloads latest kk from GitHub
+sudo KK_URL="$(pwd)/kk" bash install-kk.sh           # reuse local kk for offline installs
+sudo INSTALL_PATH=/opt/bin/kk bash install-kk.sh     # optional custom path
+```
+
+Set `KK_URL` to a local path (e.g., `sudo KK_URL="$(pwd)/kk" …`) or a `file:///` URL when the target machine is offline.
+
+### install-kk.sh one-liner
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/install-kk.sh | sudo bash
+```
+
+Set `INSTALL_PATH` or `KK_URL` in the environment before the command if you need custom paths or mirrors.
 
 > Note: This codebase is generated and maintained with help from a Codex agent—please review it before using in production clusters.
 

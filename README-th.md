@@ -35,15 +35,37 @@
 
 ## การติดตั้ง
 
+### สร้าง symlink เอง
+
 ```bash
 git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
 cd kk-Kubernetes-Power-Helper-CLI
 chmod +x kk
-# หากต้องการวาง kk ไว้บน PATH
 ln -s "$(pwd)/kk" /usr/local/bin/kk  # ปรับ path ตามต้องการ
 ```
 
-หรือคัดลอกสคริปต์ `kk` ไปไว้ในไดเรกทอรีที่อยู่บน `PATH` ของคุณ
+หรือคัดลอกไฟล์ `kk` ไปไว้ที่ใดก็ได้บน `PATH` ของคุณ
+
+### install-kk.sh (รองรับออฟไลน์)
+
+โคลน (หรือคัดลอก) repo นี้ไปยังเครื่องที่เข้าถึงโฮสต์ปลายทางได้ แล้วรัน:
+
+```bash
+cd kk-Kubernetes-Power-Helper-CLI
+sudo bash install-kk.sh                              # ดาวน์โหลด kk ล่าสุดจาก GitHub
+sudo KK_URL="$(pwd)/kk" bash install-kk.sh           # ใช้ไฟล์ kk ใน repo สำหรับติดตั้งออฟไลน์
+sudo INSTALL_PATH=/opt/bin/kk bash install-kk.sh     # กำหนด path ปลายทางเอง
+```
+
+ตั้งค่า `KK_URL` ให้เป็น path ภายใน เช่น `sudo KK_URL="$(pwd)/kk" …` หรือใช้รูปแบบ `file:///path/to/kk` เมื่อเครื่องเป้าหมายออฟไลน์
+
+### install-kk.sh แบบ one-liner
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/install-kk.sh | sudo bash
+```
+
+สามารถตั้ง `INSTALL_PATH` หรือ `KK_URL` เป็น environment variables ก่อนคำสั่งนี้ได้ หากต้องการ path หรือ mirror เฉพาะ
 
 > หมายเหตุ: โค้ดชุดนี้ถูกสร้างและดูแลด้วยความช่วยเหลือจาก Codex agent—กรุณารีวิวก่อนใช้งานกับคลัสเตอร์จริง
 
