@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-CONFIG_FILE="${HOME}/.kk"
+KK_HOME="${KK_HOME:-${HOME}/.kk}"
+KK_CONFIG="${KK_CONFIG:-${KK_HOME}/config}"
 DEFAULT_NS="default"
 
 ###############################################################################
@@ -12,16 +13,19 @@ DEFAULT_NS="default"
 ###############################################################################
 
 load_namespace() {
-  if [[ -f "$CONFIG_FILE" ]]; then
+  if [[ -f "$KK_CONFIG" ]]; then
     # shellcheck disable=SC1090
-    source "$CONFIG_FILE"
+    source "$KK_CONFIG"
   fi
   NAMESPACE="${NAMESPACE:-$DEFAULT_NS}"
 }
 
 save_namespace() {
   local ns="$1"
-  echo "NAMESPACE=${ns}" > "$CONFIG_FILE"
+  if [[ ! -d "$KK_HOME" ]]; then
+    mkdir -p "$KK_HOME"
+  fi
+  echo "NAMESPACE=${ns}" > "$KK_CONFIG"
 }
 
 ###############################################################################
@@ -48,7 +52,7 @@ Usage:
   kk ctx [context]                          Show or switch kubectl contexts
 
 Notes:
-  - Uses current namespace from ${CONFIG_FILE} (default: ${DEFAULT_NS})
+  - Uses current namespace from ${KK_CONFIG} (default: ${DEFAULT_NS})
   - <name-substring> is used as a regex against pod names
   - kk is a thin wrapper: all real work is done by kubectl
 EOF
