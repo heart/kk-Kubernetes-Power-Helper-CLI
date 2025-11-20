@@ -1,151 +1,226 @@
 # kk – Kubernetes Power Helper CLI
 
+_A faster, clearer, pattern-driven way to work with Kubernetes._
+
 ![kk logo](logo.png)
 
-## kubectl
+---
 
-`kk` is a lightweight Bash wrapper around `kubectl` that removes repetitive typing and makes routine troubleshooting tasks faster. It keeps all configuration on your machine (no CRDs, no cluster install) and respects your current namespace automatically.
+## Why kk exists
 
-## Why build another CLI?
+Working with plain `kubectl` often means:
 
-Working directly with plain `kubectl` often requires long commands, repeated namespace flags, and manual pod/deployment selection. `kk` focuses on:
+- long repetitive commands
+- retyping `-n namespace` all day
+- hunting for pod names
+- copying/pasting long suffixes
+- slow troubleshooting loops
 
-- Short, memorable subcommands.
-- Smart pattern matching for pods and deployments.
-- Streamlined workflows such as log tailing, port-forwarding, and restarts.
-- Safe defaults (e.g., namespace stored in `~/.kk`) and Unix-friendly output.
+`kk` is a lightweight Bash wrapper that removes this friction.  
+No CRDs. No server install. No abstraction magic.  
+Just **fewer keystrokes, more clarity, and faster debugging**.
 
-If you already know `kubectl`, `kk` simply helps you type less while keeping the exact same semantics.
+---
 
-## Features
+## Key Strengths of kk
 
-- Namespace helper (`kk ns show|set`) backed by `~/.kk`.
-- Pod utilities and service listing: list, exec shell, logs, describe, port-forward.
-- Troubleshooting helpers: multi-pod log streaming, `kubectl top` filtering, recent events.
-- Deployment automation: quick restarts and human-readable summaries (with `jq`).
-- Context management (`kk ctx`) to switch Kubernetes contexts without touching namespaces.
+### 🔹 1. Namespace that remembers itself
 
-## How kk saves time in real workflows
+Set it once:
 
-- **Namespace memory** – `kk ns set` persists the namespace inside `~/.kk`, so every subcommand automatically injects `-n "$NAMESPACE"` and you never retype it.
-- **Pattern-first selection** – commands such as `kk sh`, `kk desc`, and `kk restart` reuse a shared selector that filters pods/deployments with regex and launches an `fzf` picker when multiple results exist.
-- **Parallel log streaming** – `kk logs` spins background `kubectl logs` processes for every matching pod, prefixes each line with `[pod]`, and still lets you `-g/--grep` or `-f/--follow` just like plain kubectl.
-- **⭐️ Multi-replica debugging** – when a deployment has many replicas, `kk logs api -g "traceId=123"` lets you hunt across every pod simultaneously instead of copy/pasting each name into kubectl logs. Any pod whose name contains the substring `api` will be included, and the tool will stream logs from all of them while filtering only the lines that contain `traceId=123`. You immediately see which replica emitted the line because each line is prefixed with its pod name, making flaky issues and sharded traces much easier to track down.
-- **Guard rails built-in** – port-forward failures print actionable reasons, context switches confirm success, and deployment restarts always echo the exact target so you know what is happening before kubectl runs.
+```
+kk ns set staging
+```
 
-## Requirements
+Every subcommand automatically applies it.  
+No more `-n staging` everywhere.
 
-- Bash 4+
-- `kubectl` configured to access your cluster
-- Optional:
-  - `jq` for richer output in `kk images` and `kk deploys`
-  - `fzf` for interactive selection when patterns match multiple pods/deployments
+---
+
+### 🔹 2. Pattern-first Pod Selection
+
+**Stop hunting for pod names. Start selecting by intent.**
+
+In real clusters, pods look like:
+
+```
+api-server-7f9c8d7c9b-xyz12
+api-server-7f9c8d7c9b-a1b2c
+api-worker-64c8b54fd9-jkq8n
+```
+
+You normally must:
+
+- run `kubectl get pods`
+- search for the right one
+- copy/paste the full name
+- repeat when it restarts
+
+`kk` removes that entire workflow.
+
+#### ⭐ What “pattern-first” means
+
+Any substring or regex becomes your selector:
+
+```
+kk logs api
+kk sh api
+kk desc api
+```
+
+Grouped targets:
+
+```
+kk logs server
+kk logs worker
+kk restart '^api-server'
+```
+
+Specific pod inside a large namespace:
+
+```
+kk sh 'order.*prod'
+```
+
+If multiple pods match, `kk` launches `fzf` or a numbered picker—no mistakes.
+
+#### ⭐ Why this matters
+
+Pattern-first selection eliminates:
+
+- scanning long pod lists
+- copying/pasting long suffixes
+- dealing with restarts changing names
+- typing errors in long pod IDs
+
+**Your pattern expresses your intent.  
+kk resolves the actual pod for you.**
+
+#### ⭐ Works across everything
+
+One selector model, applied consistently:
+
+```
+kk pods api
+kk svc api
+kk desc api
+kk images api
+kk restart api
+```
+
+---
+
+### 🔹 3. Multi-pod Log Streaming & Debugging That Actually Works
+
+Debugging in Kubernetes is rarely linear.  
+Services scale, pods restart, replicas shift.  
+Chasing logs across multiple pods is slow and painful.
+
+`kk` makes this workflow _practical_:
+
+```
+kk logs api -g "traceId=123"
+```
+
+What happens:
+
+- Any pod whose name contains `api` is selected
+- Logs stream **from all replicas in parallel**
+- Only lines containing `traceId=123` appear
+- Every line is prefixed with the pod name
+- You instantly see which replica emitted it
+
+This transforms multi-replica debugging:
+
+- flaky requests become traceable
+- sharded workloads make sense
+- cross-replica behavior becomes visible
+
+You stop “hunting logs” and start “following evidence”.
+
+---
+
+### 🔹 4. Troubleshooting Helpers
+
+Useful shortcuts you actually use daily:
+
+- `kk top api` – quick CPU/memory filtering
+- `kk desc api` – describe via pattern
+- `kk events` – recent namespace events
+- `kk pf api 8080:80` – smarter port-forward
+- `kk images api` – pull container images (with `jq`)
+
+kk reduces friction everywhere, not just logs.
+
+---
+
+## How kk improves real workflows
+
+### Before kk
+
+```
+kubectl get pods -n staging | grep api
+kubectl logs api-7f9c9d7c9b-xyz -n staging -f | grep ERROR
+kubectl exec -it api-7f9c9d7c9b-xyz -n staging -- /bin/bash
+```
+
+### After kk
+
+```
+kk pods api
+kk logs api -f -g ERROR
+kk sh api
+```
+
+Same Kubernetes.  
+Same kubectl semantics.  
+**Less typing. Faster movement. Better clarity.**
+
+---
 
 ## Installation
 
-### Manual symlink
+### Simple install
 
-```bash
+```
 git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
 cd kk-Kubernetes-Power-Helper-CLI
 chmod +x kk
-ln -s "$(pwd)/kk" /usr/local/bin/kk  # adjust path as needed
+ln -s "$(pwd)/kk" /usr/local/bin/kk
 ```
 
-Alternatively, copy the `kk` script anywhere on your `PATH`.
+### One-liner
 
-### install-kk.sh (offline-friendly)
-
-Clone (or copy) this repo onto a machine with access to the target host, then run:
-
-```bash
-cd kk-Kubernetes-Power-Helper-CLI
-sudo bash install-kk.sh                              # downloads latest kk from GitHub
-sudo KK_URL="$(pwd)/kk" bash install-kk.sh           # reuse local kk for offline installs
-sudo INSTALL_PATH=/opt/bin/kk bash install-kk.sh     # optional custom path
 ```
-
-Set `KK_URL` to a local path (e.g., `sudo KK_URL="$(pwd)/kk" …`) or a `file:///` URL when the target machine is offline.
-
-### install-kk.sh one-liner
-
-```bash
 curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/install-kk.sh | sudo bash
 ```
 
-Set `INSTALL_PATH` or `KK_URL` in the environment before the command if you need custom paths or mirrors.
-
-> Note: This codebase is generated and maintained with help from a Codex agent—please review it before using in production clusters.
+---
 
 ## Getting Started
 
-1. Set your default namespace once:
-   ```bash
-   kk ns set my-namespace
-   ```
-   The value is persisted inside `~/.kk`.
-2. Inspect pods in that namespace:
-   ```bash
-   kk pods
-   kk pods api
-   ```
-3. Tail logs or jump into a shell using regex-like patterns:
-   ```bash
-   kk logs api -f -g ERROR
-   kk sh api -- /bin/bash
-   ```
+```
+kk ns set my-namespace
+kk pods
+kk logs api -f -g ERROR
+kk sh api -- /bin/bash
+```
 
-## ⭐️⭐️⭐️ Pattern Matching That Works for You ⭐️⭐️⭐️
-
-- **Regex everywhere** – Every `<pattern>` argument is treated as a regular expression and piped into `awk`/`grep`, so a short substring (`api`) or a precise regex (`^api-[0-9]+`) works across pods, deployments, and services without new syntax to learn.
-- **Single target guarantee** – Helpers such as `select_pod_by_pattern` and `select_deploy_by_pattern` always resolve to exactly one resource. If many results match, `kk` launches `fzf` (when installed) or prints a numbered list so you can pick by index. No more copy/pasting names from `kubectl get`.
-- **Productivity boost** – You type less (`kk logs api`) yet keep kubectl semantics, and narrowing down the right pod takes seconds instead of juggling `grep`, shell loops, or repeated `-n` flags.
-- **Safer workflows** – Because `kk` insists on an explicit selection when multiple resources match, disruptive actions like `kk restart web` never hit the wrong deployment silently.
-- **Practical example**
-
-  ```bash
-  kk pods '^api-'
-  kk logs '^api-' -f -g ERROR
-  kk restart '^api-web'
-  ```
-
-  Three keystroke-sized regexes get you the pods, live logs, and a targeted restart—all without retyping namespaces or copy/pasting pod names.
-
-## Command Highlights
-
-| Command                          | Description                                                                                         |
-| -------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `kk ns [show\|set\|list]`        | Show, set, or interactively pick the namespace stored in `~/.kk`.                                   |
-| `kk svc [pattern]`               | List services (keeps header, optional regex filter).                                                |
-| `kk pods [pattern]`              | List pods (keeps header, optional regex filter).                                                    |
-| `kk sh <pattern> [-- cmd]`       | Exec into a pod resolved by pattern.                                                                |
-| `kk logs <pattern> [options]`    | Stream logs from one or many pods, with container/grep/follow options.                              |
-| `kk images <pattern>`            | Show images used by pods (requires `jq`).                                                           |
-| `kk restart <deploy-pattern>`    | Rollout restart a deployment, with interactive selection when needed.                               |
-| `kk pf <pattern> <local:remote>` | Port-forward to a pod.                                                                              |
-| `kk desc <pattern>`              | Describe a pod.                                                                                     |
-| `kk top [pattern]`               | Display pod CPU/memory usage, filtered by name if provided.                                         |
-| `kk events`                      | Show recent events in the current namespace.                                                        |
-| `kk deploys`                     | Summarize deployments; includes ready/desired and first container image (uses `jq` when available). |
-| `kk ctx [context]`               | Show contexts or switch the active `kubectl` context.                                               |
-
-All subcommands automatically prepend `-n "$NAMESPACE"` using the namespace from `~/.kk`.
+---
 
 ## Philosophy
 
-1. **Simplicity first** – single Bash script, easy to audit.
-2. **Smart automation** – help with pattern matching and multi-resource operations without hiding raw Kubernetes concepts.
-3. **Avoid abstraction leakage** – commands map directly to familiar `kubectl` verbs.
-4. **Safe defaults** – no destructive actions without confirmation-style messaging.
-5. **Unix-style output** – grep-friendly text, no complicated formatting.
+1. **Stay simple** – a single Bash script
+2. **Reduce friction** – automate repetitive work
+3. **Stay true to Kubernetes** – don’t hide essential concepts
+4. **Be safe** – clear confirmation before destructive actions
+5. **Be Unixy** – everything is grep- and pipe-friendly
+
+---
 
 ## Contributing
 
-Pull requests that follow the project's philosophy are welcome. When adding commands:
-
-- Keep everything inside the single `kk` script.
-- Implement subcommands as `cmd_<name>()` functions.
-- Update the usage text and documentation accordingly.
-- Ensure `load_namespace` is called whenever Kubernetes resources are accessed.
+Pull requests are welcome.  
+Keep it clean, keep it Bash, keep it understandable.
 
 Happy troubleshooting!
