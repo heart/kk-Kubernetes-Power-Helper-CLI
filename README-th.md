@@ -28,9 +28,9 @@
 ## kk ช่วยประหยัดเวลาอย่างไร
 
 - **จำ namespace ให้อัตโนมัติ** – `kk ns set` เก็บชื่อ namespace ลงใน `~/.kk` แล้วทุกคำสั่งจะใส่ `-n "$NAMESPACE"` ให้เอง ไม่ต้องพิมพ์ซ้ำ
-- **เลือก resource ด้วย pattern ก่อนเสมอ** – คำสั่งอย่าง `kk sh`, `kk desc`, `kk restart` ใช้ selector ชุดเดียวกันในการกรองด้วย regex และถ้าชนหลายรายการก็เปิด `fzf --height=40% --border` ให้เลือกทันที
+- **เลือก resource ด้วย pattern ก่อนเสมอ** – คำสั่งอย่าง `kk sh`, `kk desc`, `kk restart` ใช้ selector ชุดเดียวกันในการกรองด้วย regex และถ้าชนหลายรายการก็เปิด `fzf` ให้เลือกทันที
 - **tail logs หลาย pod พร้อมกัน** – `kk logs` เปิด `kubectl logs` แบบ background ให้ทุก pod ใส่ prefix ชื่อ pod ให้อ่านง่าย พร้อมตัวเลือก `-g/--grep` และ `-f/--follow` เหมือนเดิม
-- **⭐️ ดีบั๊ก deployment ที่มีหลาย replica ได้ทีเดียว** – เวลาอยากหา log จากงานที่ scale เช่น `api` เพียงพิมพ์ `kk logs api -g "traceId=123"` แล้วมันจะดึงทุก replica มาพร้อมกัน พร้อม prefix ชื่อ pod ให้เห็นชัดว่าแถวไหนมาจากตัวไหน ไม่ต้องคัดลอกชื่อ pod ทีละตัวหรือวน `kubectl logs` เองอีกต่อไป
+- **⭐️ ดีบั๊ก deployment ที่มีหลาย replica ได้ทีเดียว** – เมื่อ workload ถูก scale ออกเป็นหลายตัว เช่น api คุณแค่พิมพ์ `kk logs api -g "traceId=123"` ระบบจะดึง log จาก ทุก pod ที่มีคำว่า `api` อยู่ในชื่อ มารวมกัน แล้วกรองเฉพาะบรรทัดที่มี `traceId=123` ให้ทันที พร้อมใส่ prefix เป็นชื่อ pod ของแต่ละบรรทัด ทำให้เห็นชัดเจนว่า log มาจาก replica ไหน ไม่ต้องคัดลอกชื่อ pod ทีละตัวหรือวน kubectl logs เองอีกต่อไป
 - **บอกข้อผิดพลาดอย่างชัดเจน** – `kk pf` แจ้งสาเหตุ port-forward พัง, `kk ctx` รายงานผลการสลับ context, ส่วน `kk restart` ระบุ deployment เป้าหมายชัดเจนก่อนยิงคำสั่งจริง
 
 ## ความต้องการระบบ
@@ -98,7 +98,7 @@ curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CL
 ## ⭐️⭐️⭐️ Pattern Matching ที่ใช้งานจริง ⭐️⭐️⭐️
 
 - **Regex ได้ทุกที่** – อาร์กิวเมนต์ `<pattern>` ทุกจุดถูกมองเป็น regex ทำงานผ่าน `awk`/`grep` จะพิมพ์สั้นๆ (`api`) หรือ regex เต็ม (`^api-[0-9]+`) ก็ใช้ได้กับ pod, deployment, service โดยไม่ต้องจำ syntax ใหม่
-- **บังคับให้เจอเป้าหมายเดียว** – ฟังก์ชัน `select_pod_by_pattern` และ `select_deploy_by_pattern` จะหาทรัพยากรให้เหลือหนึ่งรายการ ถ้ามีหลายตัว `kk` จะเปิด `fzf --height=40% --border` (ถ้าติดตั้งไว้) หรือแสดงรายการพร้อมเลขให้เลือก
+- **บังคับให้เจอเป้าหมายเดียว** – ฟังก์ชัน `select_pod_by_pattern` และ `select_deploy_by_pattern` จะหาทรัพยากรให้เหลือหนึ่งรายการ ถ้ามีหลายตัว `kk` จะเปิด `fzf` (ถ้าติดตั้งไว้) หรือแสดงรายการพร้อมเลขให้เลือก
 - **ทำงานได้เร็วขึ้น** – ใช้แค่ `kk logs api` ก็ได้ผลลัพธ์ครบเหมือน `kubectl` และยังลดการพิมพ์ `grep`, loop, หรือ `-n` ซ้ำๆ
 - **ลดความเสี่ยง** – เมื่อมีหลายรายการ คุณต้องเลือกชัดเจนก่อน `kk restart web` จะทำงาน จึงลดโอกาสยิงโดน deployment ผิดตัว
 
