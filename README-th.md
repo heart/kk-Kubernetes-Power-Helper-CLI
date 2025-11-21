@@ -206,15 +206,26 @@ kk sh api
 ```
 git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
 cd kk-Kubernetes-Power-Helper-CLI
-chmod +x kk
-ln -s "$(pwd)/kk" /usr/local/bin/kk
+cp kk.sh ~/.kk.sh
+echo 'source ~/.kk.sh' >> ~/.bashrc   # หรือไฟล์ rc ของ shell ที่คุณใช้จริง
+# เปิด shell ใหม่ (หรือ `source ~/.bashrc`) แล้วเริ่มใช้ kk
 ```
 
 หรือแบบ one-line:
 
 ```
 curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/install-kk.sh | sudo bash
+# จากนั้น reload shell เพื่อให้ kk() จาก /etc/profile.d/kk.sh ถูกโหลด
+# ถ้าใช้ macOS สคริปต์จะเตือนให้เพิ่มคำสั่ง:  source /usr/local/lib/kk.sh  ลงใน ~/.zshrc หรือไฟล์ rc อื่น
 ```
+
+### การถอนการติดตั้ง
+
+```
+curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/uninstall-kk.sh | sudo bash
+```
+
+หรือถ้าคุณติดตั้งแบบ manual (เช่น source `~/.kk.sh`) ก็แค่ลบไฟล์นั้นและนำบรรทัด `source ~/.kk.sh` ออกจากไฟล์ rc ของ shell ที่คุณใช้
 
 ---
 

@@ -1,43 +1,34 @@
 #!/usr/bin/env bash
-# kk - Kubernetes helper CLI
-# Lightweight wrapper around kubectl for daily Dev/DevOps workflows.
+# kk - Kubernetes helper CLI (function wrapper around kubectl for daily Dev/DevOps workflows).
+#
+# Usage (install):
+#   1) Save this file as ~/kk.sh
+#   2) Add to your ~/.bashrc or ~/.zshrc:
+#        source ~/kk.sh
+#   3) Open a new shell, then call:
+#        kk ns set my-namespace
+#        kk pods
+#
+# Each shell (tmux pane/window) has its own KK_NAMESPACE variable,
+# so switching namespace in one shell will NOT affect the others.
 
-set -euo pipefail
-
-KK_HOME="${KK_HOME:-${HOME}/.kk}"
-KK_CONFIG="${KK_CONFIG:-${KK_HOME}/config}"
 DEFAULT_NS="default"
+: "${KK_NAMESPACE:=$DEFAULT_NS}"
 
 ###############################################################################
-# Namespace handling
+# Helpers
 ###############################################################################
 
-load_namespace() {
-  if [[ -f "$KK_CONFIG" ]]; then
-    # shellcheck disable=SC1090
-    source "$KK_CONFIG"
-  fi
-  NAMESPACE="${NAMESPACE:-$DEFAULT_NS}"
+_kk_current_namespace() {
+  printf '%s\n' "${KK_NAMESPACE:-$DEFAULT_NS}"
 }
 
-save_namespace() {
-  local ns="$1"
-  if [[ ! -d "$KK_HOME" ]]; then
-    mkdir -p "$KK_HOME"
-  fi
-  echo "NAMESPACE=${ns}" > "$KK_CONFIG"
-}
-
-###############################################################################
-# Usage
-###############################################################################
-
-usage() {
+kk_usage() {
   cat <<EOF
 kk - Kubernetes Power Helper CLI (wrapper around kubectl)
 
 Usage:
-  kk ns [show|set <namespace>|list]         Manage saved namespace (list uses interactive picker)
+  kk ns [show|set <namespace>|list]         Manage namespace in this shell (list uses interactive picker)
   kk pods [name-substring]                  List pods (optional regex filter)
   kk svc [name-substring]                   List services (optional regex filter)
   kk sh <name-substring> [-- COMMAND...]    Exec into matching pod
@@ -49,101 +40,20 @@ Usage:
   kk top [pattern]                          Show resource usage (optional filter)
   kk events                                 List recent namespace events
   kk deploys                                Summarize deployments in namespace
-  kk ctx [context]                          Show or switch kubectl contexts
+  kk ctx [context]                          Show or switch kubectl contexts (global kubeconfig)
 
 Notes:
-  - Uses current namespace from ${KK_CONFIG} (default: ${DEFAULT_NS})
+  - Namespace is stored in shell variable KK_NAMESPACE (default: ${DEFAULT_NS})
+  - Each shell / tmux pane has its own KK_NAMESPACE
   - <name-substring> is used as a regex against pod names
   - kk is a thin wrapper: all real work is done by kubectl
 EOF
 }
 
-###############################################################################
-# Commands
-###############################################################################
-
-cmd_ns() {
-  load_namespace
-  local action="${1:-show}"
-  case "$action" in
-    show)
-      echo "Current namespace: ${NAMESPACE}"
-      ;;
-    set)
-      local ns="${2:-}"
-      if [[ -z "$ns" ]]; then
-        echo "Usage: kk ns set <namespace>" >&2
-        exit 1
-      fi
-      save_namespace "$ns"
-      echo "Set namespace to: ${ns}"
-      ;;
-    list)
-      local namespaces selected
-      if ! namespaces=$(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'); then
-        echo "Failed to list namespaces via kubectl" >&2
-        exit 1
-      fi
-      if [[ -z "$namespaces" ]]; then
-        echo "No namespaces returned by cluster" >&2
-        exit 1
-      fi
-      if command -v fzf >/dev/null 2>&1; then
-        local header="Select namespace to set as kk default (current: ${NAMESPACE})"
-        selected=$(printf "%s\n" "$namespaces" | fzf --height=40% --border --prompt="ns> " --header="$header")
-      else
-        echo "Select the namespace to use as kk default (current: ${NAMESPACE})" >&2
-        echo "Available namespaces:" >&2
-        nl -ba <<< "$namespaces" >&2
-        echo -n "Select index: " >&2
-        local idx
-        read -r idx
-        selected=$(nl -ba <<< "$namespaces" | awk -v i="$idx" '$1 == i { $1=""; sub(/^ /,""); print }')
-      fi
-      if [[ -z "$selected" ]]; then
-        echo "No namespace selected" >&2
-        exit 1
-      fi
-      save_namespace "$selected"
-      echo "Set namespace to: ${selected}"
-      ;;
-    *)
-      echo "Unknown ns action: $action" >&2
-      exit 1
-      ;;
-  esac
-}
-
-cmd_pods() {
-  load_namespace
-  local pattern="${1:-}"
-  if [[ -z "$pattern" ]]; then
-    kubectl get pods -n "$NAMESPACE"
-  else
-    # keep header row (NR==1) and filter pod name column by regex
-    kubectl get pods -n "$NAMESPACE" | awk -v p="$pattern" 'NR==1 || $1 ~ p'
-  fi
-}
-
-cmd_svc() {
-  load_namespace
-  local pattern="${1:-}"
-
-  local output
-  if ! output=$(kubectl get svc -n "$NAMESPACE"); then
-    return $?
-  fi
-
-  if [[ -z "$pattern" ]]; then
-    printf "%s\n" "$output"
-  else
-    awk -v p="$pattern" 'NR==1 || $1 ~ p' <<< "$output"
-  fi
-}
-
 select_pod_by_pattern() {
   local pattern="$1"
-  load_namespace
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   # list pod names and grep by pattern
   local pods
@@ -183,7 +93,8 @@ select_pod_by_pattern() {
 
 select_deploy_by_pattern() {
   local pattern="$1"
-  load_namespace
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   local deploys
   deploys=$(kubectl get deploy -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep -E -- "$pattern" || true)
@@ -219,18 +130,103 @@ select_deploy_by_pattern() {
   fi
 }
 
-cmd_sh() {
+###############################################################################
+# Subcommand implementations
+###############################################################################
+
+kk_cmd_ns() {
+  local action="${1:-show}"
+  case "$action" in
+    show)
+      echo "Current namespace: ${KK_NAMESPACE:-$DEFAULT_NS}"
+      ;;
+    set)
+      local ns="${2:-}"
+      if [[ -z "$ns" ]]; then
+        echo "Usage: kk ns set <namespace>" >&2
+        return 1
+      fi
+      KK_NAMESPACE="$ns"
+      echo "Set namespace to: ${KK_NAMESPACE}"
+      ;;
+    list)
+      local namespaces selected
+      if ! namespaces=$(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'); then
+        echo "Failed to list namespaces via kubectl" >&2
+        return 1
+      fi
+      if [[ -z "$namespaces" ]]; then
+        echo "No namespaces returned by cluster" >&2
+        return 1
+      fi
+      if command -v fzf >/dev/null 2>&1; then
+        local header="Select namespace to set for this shell (current: ${KK_NAMESPACE:-$DEFAULT_NS})"
+        selected=$(printf "%s\n" "$namespaces" | fzf --height=40% --border --prompt="ns> " --header="$header")
+      else
+        echo "Select the namespace to use in this shell (current: ${KK_NAMESPACE:-$DEFAULT_NS})" >&2
+        echo "Available namespaces:" >&2
+        nl -ba <<< "$namespaces" >&2
+        echo -n "Select index: " >&2
+        local idx
+        read -r idx
+        selected=$(nl -ba <<< "$namespaces" | awk -v i="$idx" '$1 == i { $1=""; sub(/^ /,""); print }')
+      fi
+      if [[ -z "$selected" ]]; then
+        echo "No namespace selected" >&2
+        return 1
+      fi
+      KK_NAMESPACE="$selected"
+      echo "Set namespace to: ${KK_NAMESPACE}"
+      ;;
+    *)
+      echo "Unknown ns action: $action" >&2
+      return 1
+      ;;
+  esac
+}
+
+kk_cmd_pods() {
+  local pattern="${1:-}"
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
+
+  if [[ -z "$pattern" ]]; then
+    kubectl get pods -n "$NAMESPACE"
+  else
+    kubectl get pods -n "$NAMESPACE" | awk -v p="$pattern" 'NR==1 || $1 ~ p'
+  fi
+}
+
+kk_cmd_svc() {
+  local pattern="${1:-}"
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
+
+  local output
+  if ! output=$(kubectl get svc -n "$NAMESPACE"); then
+    return $?
+  fi
+
+  if [[ -z "$pattern" ]]; then
+    printf "%s\n" "$output"
+  else
+    awk -v p="$pattern" 'NR==1 || $1 ~ p' <<< "$output"
+  fi
+}
+
+kk_cmd_sh() {
   local pattern="${1:-}"
   shift || true
 
   if [[ -z "$pattern" ]]; then
     echo "Usage: kk sh <name-substring> [-- COMMAND...]" >&2
-    exit 1
+    return 1
   fi
 
   local pod
-  pod=$(select_pod_by_pattern "$pattern") || exit 1
-  load_namespace
+  pod=$(select_pod_by_pattern "$pattern") || return 1
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   if [[ "${1:-}" == "--" ]]; then
     shift
@@ -244,12 +240,13 @@ cmd_sh() {
   kubectl exec -ti -n "$NAMESPACE" "$pod" -- "$@"
 }
 
-cmd_logs() {
-  load_namespace
+kk_cmd_logs() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   if [[ $# -lt 1 ]]; then
     echo "Usage: kk logs <name-substring> [-c container] [-g pattern] [-f] [-- extra kubectl logs args]" >&2
-    exit 1
+    return 1
   fi
 
   local pattern="$1"
@@ -260,7 +257,6 @@ cmd_logs() {
   local follow="false"
   local extra_args=()
 
-  # parse options
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -c|--container)
@@ -286,13 +282,12 @@ cmd_logs() {
 
   if [[ -z "$pods" ]]; then
     echo "No pods found matching pattern: $pattern" >&2
-    exit 1
+    return 1
   fi
 
   echo "Streaming logs from pods (namespace: $NAMESPACE):" >&2
   printf "%s\n" "$pods" >&2
 
-  # stream logs, prefix with pod name, then optional grep
   if [[ "$follow" == "true" ]]; then
     for p in $pods; do
       (
@@ -320,17 +315,18 @@ cmd_logs() {
   }
 }
 
-cmd_images() {
-  load_namespace
+kk_cmd_images() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
-  if [[ $# -lt 1 ]]; then
+  if [[ $# < 1 ]]; then
     echo "Usage: kk images <name-substring>" >&2
-    exit 1
+    return 1
   fi
 
   if ! command -v jq >/dev/null 2>&1; then
     echo "Error: jq is required for 'kk images'. Please install jq." >&2
-    exit 1
+    return 1
   fi
 
   local pattern="$1"
@@ -341,7 +337,7 @@ cmd_images() {
 
   if [[ -z "$pods" ]]; then
     echo "No pods found matching: $pattern" >&2
-    exit 1
+    return 1
   fi
 
   for pod in $pods; do
@@ -355,28 +351,30 @@ cmd_images() {
   done
 }
 
-cmd_restart() {
-  load_namespace
+kk_cmd_restart() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   local pattern="${1:-}"
   if [[ -z "$pattern" ]]; then
     echo "Usage: kk restart <deploy-pattern>" >&2
-    exit 1
+    return 1
   fi
 
   local deploy
-  deploy=$(select_deploy_by_pattern "$pattern") || exit 1
+  deploy=$(select_deploy_by_pattern "$pattern") || return 1
 
   echo "Restarting deployment: $deploy (namespace: $NAMESPACE)" >&2
   kubectl rollout restart "deploy/$deploy" -n "$NAMESPACE"
 }
 
-cmd_pf() {
-  load_namespace
+kk_cmd_pf() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   if [[ $# -lt 2 ]]; then
     echo "Usage: kk pf <pod-pattern> <local:remote>" >&2
-    exit 1
+    return 1
   fi
 
   local pattern="$1"
@@ -384,34 +382,36 @@ cmd_pf() {
   shift 2
 
   local pod
-  pod=$(select_pod_by_pattern "$pattern") || exit 1
+  pod=$(select_pod_by_pattern "$pattern") || return 1
 
   local extra_args=("$@")
   echo "Port-forwarding pod: $pod (namespace: $NAMESPACE) on $port_spec" >&2
   kubectl port-forward -n "$NAMESPACE" "$pod" "$port_spec" "${extra_args[@]}" || {
     echo "Port-forward failed (port in use, pod restarting, or network issue)" >&2
-    exit 1
+    return 1
   }
 }
 
-cmd_desc() {
-  load_namespace
+kk_cmd_desc() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   if [[ $# -lt 1 ]]; then
     echo "Usage: kk desc <pod-pattern>" >&2
-    exit 1
+    return 1
   fi
 
   local pattern="$1"
   local pod
-  pod=$(select_pod_by_pattern "$pattern") || exit 1
+  pod=$(select_pod_by_pattern "$pattern") || return 1
 
   kubectl describe pod "$pod" -n "$NAMESPACE"
 }
 
-cmd_top() {
-  load_namespace
+kk_cmd_top() {
   local pattern="${1:-}"
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   local output
   if ! output=$(kubectl top pod -n "$NAMESPACE"); then
@@ -425,16 +425,18 @@ cmd_top() {
   fi
 }
 
-cmd_events() {
-  load_namespace
+kk_cmd_events() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   if ! kubectl get events -n "$NAMESPACE" --sort-by=.lastTimestamp; then
     kubectl get events -n "$NAMESPACE" --sort-by=.metadata.creationTimestamp
   fi
 }
 
-cmd_deploys() {
-  load_namespace
+kk_cmd_deploys() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
 
   if command -v jq >/dev/null 2>&1; then
     local json
@@ -467,7 +469,7 @@ cmd_deploys() {
   fi
 }
 
-cmd_ctx() {
+kk_cmd_ctx() {
   local context="${1:-}"
 
   if [[ -z "$context" ]]; then
@@ -475,43 +477,41 @@ cmd_ctx() {
   else
     kubectl config use-context "$context" \
       && echo "Switched to context: $context" \
-      || { echo "Failed to switch context: $context" >&2; exit 1; }
+      || { echo "Failed to switch context: $context" >&2; return 1; }
   fi
 }
 
 ###############################################################################
-# Main
+# kk function (entry point)
 ###############################################################################
 
-main() {
+kk() {
   local cmd="${1:-}"
   if [[ -z "$cmd" ]]; then
-    usage
-    exit 0
+    kk_usage
+    return 0
   fi
-  shift
+  shift || true
 
   case "$cmd" in
-    ns)      cmd_ns "$@" ;;
-    pods)    cmd_pods "$@" ;;
-    svc)     cmd_svc "$@" ;;
-    sh|shell) cmd_sh "$@" ;;
-    logs)    cmd_logs "$@" ;;
-    images)  cmd_images "$@" ;;
-    restart) cmd_restart "$@" ;;
-    pf)      cmd_pf "$@" ;;
-    desc)    cmd_desc "$@" ;;
-    top)     cmd_top "$@" ;;
-    events)  cmd_events "$@" ;;
-    deploys) cmd_deploys "$@" ;;
-    ctx)     cmd_ctx "$@" ;;
-    -h|--help|help) usage ;;
+    ns)      kk_cmd_ns "$@" ;;
+    pods)    kk_cmd_pods "$@" ;;
+    svc)     kk_cmd_svc "$@" ;;
+    sh|shell) kk_cmd_sh "$@" ;;
+    logs)    kk_cmd_logs "$@" ;;
+    images)  kk_cmd_images "$@" ;;
+    restart) kk_cmd_restart "$@" ;;
+    pf)      kk_cmd_pf "$@" ;;
+    desc)    kk_cmd_desc "$@" ;;
+    top)     kk_cmd_top "$@" ;;
+    events)  kk_cmd_events "$@" ;;
+    deploys) kk_cmd_deploys "$@" ;;
+    ctx)     kk_cmd_ctx "$@" ;;
+    -h|--help|help) kk_usage ;;
     *)
       echo "Unknown subcommand: $cmd" >&2
-      usage
-      exit 1
+      kk_usage
+      return 1
       ;;
   esac
 }
-
-main "$@"
