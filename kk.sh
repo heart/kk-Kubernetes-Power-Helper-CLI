@@ -38,9 +38,9 @@ Usage:
   kk pf <pod-pattern> <local:remote>        Port-forward to matching pod
   kk desc <pod-pattern>                     Describe a pod
   kk top [pattern]                          Show resource usage (optional filter)
+  kk ctx [list|use|show] [...]              Manage kubectl contexts (list/use/show details)
   kk events                                 List recent namespace events
   kk deploys                                Summarize deployments in namespace
-  kk ctx [context]                          Show or switch kubectl contexts (global kubeconfig)
 
 Notes:
   - Namespace is stored in shell variable KK_NAMESPACE (default: ${DEFAULT_NS})
@@ -470,15 +470,60 @@ kk_cmd_deploys() {
 }
 
 kk_cmd_ctx() {
-  local context="${1:-}"
+  local action="${1:-}"
 
-  if [[ -z "$context" ]]; then
+  if [[ -z "$action" ]]; then
     kubectl config get-contexts
-  else
-    kubectl config use-context "$context" \
-      && echo "Switched to context: $context" \
-      || { echo "Failed to switch context: $context" >&2; return 1; }
+    return
   fi
+
+  case "$action" in
+    list)
+      shift || true
+      if [[ "$#" -gt 0 ]]; then
+        echo "Usage: kk ctx list" >&2
+        return 1
+      fi
+      kubectl config get-contexts
+      ;;
+    use)
+      shift || true
+      local context="${1:-}"
+      if [[ -z "$context" ]]; then
+        echo "Usage: kk ctx use <context>" >&2
+        return 1
+      fi
+      kubectl config use-context "$context" \
+        && echo "Switched to context: $context" \
+        || { echo "Failed to switch context: $context" >&2; return 1; }
+      ;;
+    show|info|details)
+      shift || true
+      local context="${1:-}"
+      if [[ -z "$context" ]]; then
+        if ! context="$(kubectl config current-context 2>/dev/null)"; then
+          echo "Failed to determine current context." >&2
+          return 1
+        fi
+      else
+        shift || true
+        if [[ "$#" -gt 0 ]]; then
+          echo "Usage: kk ctx show [context]" >&2
+          return 1
+        fi
+      fi
+      kubectl config view --minify --context "$context" || {
+        echo "Failed to show details for context: $context" >&2
+        return 1
+      }
+      ;;
+    *)
+      # Backwards compatibility: treat argument as context name to switch to.
+      kubectl config use-context "$action" \
+        && echo "Switched to context: $action" \
+        || { echo "Failed to switch context: $action" >&2; return 1; }
+      ;;
+  esac
 }
 
 ###############################################################################

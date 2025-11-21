@@ -356,22 +356,33 @@ All commands implicitly use the namespace from `_kk_current_namespace()`
 
 ### Contexts (global kubectl context)
 
-- `kk ctx [context]`
+- `kk ctx [list|use|show] [...]`
 
-  - No argument:
+  - `kk ctx` or `kk ctx list`
 
     ```bash
     kubectl config get-contexts
     ```
 
-  - With a context name:
+  - `kk ctx use <context>`
 
     ```bash
     kubectl config use-context "$context"
     ```
 
-  - On success: prints `Switched to context: <context>`.
-  - On failure: prints `Failed to switch context: <context>` and returns non-zero.
+    - On success: prints `Switched to context: <context>`.
+    - On failure: prints `Failed to switch context: <context>` and returns non-zero.
+
+  - `kk ctx show [context]`
+
+    - If no context is provided, resolves the current context via `kubectl config current-context`.
+    - Shows context details with:
+
+      ```bash
+      kubectl config view --minify --context "$context"
+      ```
+
+    - On failure: prints `Failed to show details for context: <context>` and returns non-zero.
 
   - **Note:** Contexts are global kubectl configuration. `kk` does not implement its own context system; it simply forwards to `kubectl`.
 
