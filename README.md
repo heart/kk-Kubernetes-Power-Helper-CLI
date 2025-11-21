@@ -181,7 +181,7 @@ Same kubectl semantics.
 ## Available commands
 
 | Command       | Syntax                                                                                | Description                                                                                                                                                                                                                                                                                                               |
-| ------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ns`          | `kk ns [show \| set <namespace> \| list]`                                             | Manage the persisted default namespace used by all kk commands. `show` prints the current namespace, `set` updates it (stored in `~/.kk`), and `list` lets you pick a namespace from the cluster (using `fzf` if available).                                                                                              |
 | `pods`        | `kk pods [pattern]`                                                                   | List pods in the current namespace. If `pattern` is provided, it is treated as a regular expression and only pods whose names match the pattern are shown (header row is always kept).                                                                                                                                    |
 | `svc`         | `kk svc [pattern]`                                                                    | List services in the current namespace. If `pattern` is provided, it is used as a regex filter on the service name column while preserving the header row.                                                                                                                                                                |
@@ -194,8 +194,46 @@ Same kubectl semantics.
 | `top`         | `kk top [pattern]`                                                                    | Show CPU and memory usage for pods in the current namespace using `kubectl top pod`. If `pattern` is provided, it is used as a regex filter on the pod name column while keeping the header row.                                                                                                                          |
 | `events`      | `kk events`                                                                           | List recent events in the current namespace. Tries to sort by `.lastTimestamp`, falling back to `.metadata.creationTimestamp` if needed. Useful for quick troubleshooting of failures and restarts.                                                                                                                       |
 | `deploys`     | `kk deploys`                                                                          | Summarize deployments in the current namespace. With `jq` installed, prints a compact table of deployment `NAME`, `READY/desired` replicas, and the first container image; otherwise falls back to `kubectl get deploy`.                                                                                                  |
-| `ctx`         | `kk ctx [list|use|show] [...]`                                                         | Manage `kubectl` contexts. `list` (or no args) shows all contexts, `use <name>` switches contexts, and `show [name]` prints the context’s details (defaulting to the current context).                                                                                                                                    |
+| `ctx`         | `kk ctx [list                                                                         | use                                                                                                                                                                                                                                                                                                                       | show] [...]` | Manage `kubectl` contexts. `list` (or no args) shows all contexts, `use <name>` switches contexts, and `show [name]` prints the context’s details (defaulting to the current context). |
 | `help`        | `kk help` / `kk -h` / `kk --help`                                                     | Display the built-in usage help, including a summary of all subcommands, arguments, and notes about namespace and regex-based pattern matching.                                                                                                                                                                           |
+
+### Native shortcuts
+
+`kk` understands kubectl-style abbreviations for convenience:
+
+| Shortcut(s)                         | Expands to |
+| ----------------------------------- | ---------- |
+| `po`, `pod`                         | `pods`     |
+| `svc`, `service`, `services`        | `svc`      |
+| `exec`, `shell`                     | `sh`       |
+| `log`                               | `logs`     |
+| `img`                               | `images`   |
+| `rollout`                           | `restart`  |
+| `pf`, `port-forward`, `portforward` | `pf`       |
+| `describe`                          | `desc`     |
+| `usage`, `resources`                | `top`      |
+| `event`                             | `events`   |
+| `deploy`, `deployments`             | `deploys`  |
+| `context`, `contexts`               | `ctx`      |
+| `namespace`                         | `ns`       |
+
+---
+
+## Compare: kk vs raw kubectl
+
+| Task                       | kubectl                                       | kk                                  |
+| -------------------------- | --------------------------------------------- | ----------------------------------- |
+| Show current namespace     | `kubectl config view --minify` (or similar)   | `kk ns show`                        |
+| List pods                  | `kubectl get pods -n <ns>`                    | `kk pods`                           |
+| Filter pods by name        | `kubectl get pods -n <ns> (then grep api)`    | `kk pods api`                       |
+| Stream logs from a pod     | `kubectl logs -f pod-xyz -n <ns>`             | `kk logs pod-xyz -f`                |
+| Stream logs from many pods | loop / xargs / tools like `stern`             | `kk logs api -f` (all matched pods) |
+| Exec into a pod            | `kubectl exec -ti pod-xyz -n <ns> -- /bin/sh` | `kk sh pod-xyz`                     |
+| List services              | `kubectl get svc -n <ns>`                     | `kk svc`                            |
+| Restart a deployment       | `kubectl rollout restart deploy/api -n <ns>`  | `kk restart api`                    |
+| Summarize deployments      | `kubectl get deploy -n <ns> -o json + jq ...` | `kk deploys`                        |
+| Show current contexts      | `kubectl config get-contexts`                 | `kk ctx list` / `kk ctx`            |
+| Switch context             | `kubectl config use-context myctx`            | `kk ctx use myctx` / `kk ctx myctx` |
 
 ---
 

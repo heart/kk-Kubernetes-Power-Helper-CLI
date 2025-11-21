@@ -386,6 +386,24 @@ All commands implicitly use the namespace from `_kk_current_namespace()`
 
   - **Note:** Contexts are global kubectl configuration. `kk` does not implement its own context system; it simply forwards to `kubectl`.
 
+### Command shortcuts
+
+`kk` accepts kubectl-style abbreviations in addition to the canonical subcommand names:
+
+- `namespace` → `ns`
+- `po` / `pod` → `pods`
+- `svc` / `service` / `services` → `svc`
+- `exec` / `shell` → `sh`
+- `log` → `logs`
+- `img` → `images`
+- `rollout` → `restart`
+- `pf` / `port-forward` / `portforward` → `pf`
+- `describe` → `desc`
+- `usage` / `resources` → `top`
+- `event` → `events`
+- `deploy` / `deployments` → `deploys`
+- `context` / `contexts` → `ctx`
+
 ---
 
 ## Tech Stack & Constraints

@@ -539,19 +539,19 @@ kk() {
   shift || true
 
   case "$cmd" in
-    ns)      kk_cmd_ns "$@" ;;
-    pods)    kk_cmd_pods "$@" ;;
-    svc)     kk_cmd_svc "$@" ;;
-    sh|shell) kk_cmd_sh "$@" ;;
-    logs)    kk_cmd_logs "$@" ;;
-    images)  kk_cmd_images "$@" ;;
-    restart) kk_cmd_restart "$@" ;;
-    pf)      kk_cmd_pf "$@" ;;
-    desc)    kk_cmd_desc "$@" ;;
-    top)     kk_cmd_top "$@" ;;
-    events)  kk_cmd_events "$@" ;;
-    deploys) kk_cmd_deploys "$@" ;;
-    ctx)     kk_cmd_ctx "$@" ;;
+    ns|namespace)             kk_cmd_ns "$@" ;;
+    pods|pod|po)              kk_cmd_pods "$@" ;;
+    svc|service|services)     kk_cmd_svc "$@" ;;
+    sh|shell|exec)            kk_cmd_sh "$@" ;;
+    logs|log)                 kk_cmd_logs "$@" ;;
+    images|img)               kk_cmd_images "$@" ;;
+    restart|rollout)          kk_cmd_restart "$@" ;;
+    pf|port-forward|portforward) kk_cmd_pf "$@" ;;
+    desc|describe)            kk_cmd_desc "$@" ;;
+    top|usage|resources)      kk_cmd_top "$@" ;;
+    events|event)             kk_cmd_events "$@" ;;
+    deploys|deploy|deployments) kk_cmd_deploys "$@" ;;
+    ctx|context|contexts)     kk_cmd_ctx "$@" ;;
     -h|--help|help) kk_usage ;;
     *)
       echo "Unknown subcommand: $cmd" >&2

@@ -183,7 +183,7 @@ kk sh api
 ## คำสั่งที่เรียกใช้ได้
 
 | คำสั่ง        | รูปแบบ (Syntax)                                                                       | คำอธิบาย                                                                                                                                                                                                                                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ns`          | `kk ns [show \| set <namespace> \| list]`                                             | จัดการ namespace เริ่มต้นที่ kk ใช้สำหรับทุกคำสั่ง เก็บค่าไว้ในไฟล์ `~/.kk` เมื่อใช้ `show` จะแสดง namespace ปัจจุบัน, `set` เปลี่ยนค่า namespace, ส่วน `list` ให้เลือก namespace จาก cluster (ใช้ `fzf` ถ้ามีติดตั้ง).                                                                                              |
 | `pods`        | `kk pods [pattern]`                                                                   | แสดงรายการ pods ใน namespace ปัจจุบัน ถ้าระบุ `pattern` จะใช้เป็น regex กรองเฉพาะ pod ที่ชื่อ match พร้อมคง header แถวแรกไว้เสมอ.                                                                                                                                                                                    |
 | `svc`         | `kk svc [pattern]`                                                                    | แสดงรายการ services ใน namespace ปัจจุบัน ถ้ามี `pattern` จะใช้เป็น regex เพื่อกรองชื่อ service โดยยังคง header แถวแรกไว้.                                                                                                                                                                                           |
@@ -196,8 +196,46 @@ kk sh api
 | `top`         | `kk top [pattern]`                                                                    | แสดงการใช้ CPU/Memory ของ pods ใน namespace ปัจจุบันด้วย `kubectl top pod` ถ้าระบุ `pattern` จะใช้เป็น regex กรองชื่อ pod โดยยังคง header แถวแรกไว้.                                                                                                                                                                 |
 | `events`      | `kk events`                                                                           | แสดง events ล่าสุดใน namespace ปัจจุบัน พยายาม sort ตาม `.lastTimestamp` และถ้าไม่ได้จะ fallback ไปใช้ `.metadata.creationTimestamp` ใช้ดู error, restart และเหตุการณ์ผิดปกติได้เร็ว.                                                                                                                                |
 | `deploys`     | `kk deploys`                                                                          | สรุปข้อมูล deployments ใน namespace ปัจจุบัน ถ้ามี `jq` จะพิมพ์ตารางที่อ่านง่ายพร้อม `NAME`, จำนวน `READY/desired` และ image แรกของ container ถ้าไม่มี `jq` จะ fallback ไปใช้ `kubectl get deploy` ตรง ๆ.                                                                                                            |
-| `ctx`         | `kk ctx [list|use|show] [...]`                                                         | จัดการ context ของ `kubectl` — `list` (หรือไม่ใส่อะไรเลย) แสดง contexts ทั้งหมด, `use <name>` สลับ context, และ `show [name]` แสดงรายละเอียดของ context (ค่าเริ่มต้นคือ context ปัจจุบัน).                                                                                                                           |
+| `ctx`         | `kk ctx [list                                                                         | use                                                                                                                                                                                                                                                                                                                  | show] [...]` | จัดการ context ของ `kubectl` — `list` (หรือไม่ใส่อะไรเลย) แสดง contexts ทั้งหมด, `use <name>` สลับ context, และ `show [name]` แสดงรายละเอียดของ context (ค่าเริ่มต้นคือ context ปัจจุบัน). |
 | `help`        | `kk help` / `kk -h` / `kk --help`                                                     | แสดงหน้าช่วยเหลือ usage ของ kk รวมสรุปทุก subcommand, argument ที่ใช้ได้ และหมายเหตุเรื่อง namespace กับการใช้ regex เป็น pattern เลือก resource.                                                                                                                                                                    |
+
+### คำสั่งลัด (Shortcuts)
+
+`kk` รองรับคำย่อสไตล์ kubectl เพื่อความรวดเร็ว:
+
+| คำย่อ                               | เทียบเท่ากับ |
+| ----------------------------------- | ------------ |
+| `po`, `pod`                         | `pods`       |
+| `svc`, `service`, `services`        | `svc`        |
+| `exec`, `shell`                     | `sh`         |
+| `log`                               | `logs`       |
+| `img`                               | `images`     |
+| `rollout`                           | `restart`    |
+| `pf`, `port-forward`, `portforward` | `pf`         |
+| `describe`                          | `desc`       |
+| `usage`, `resources`                | `top`        |
+| `event`                             | `events`     |
+| `deploy`, `deployments`             | `deploys`    |
+| `context`, `contexts`               | `ctx`        |
+| `namespace`                         | `ns`         |
+
+---
+
+## เปรียบเทียบ kk vs raw kubectl
+
+| งานที่ต้องทำ                | kubectl                                              | kk                                          |
+| --------------------------- | ---------------------------------------------------- | ------------------------------------------- |
+| ดู namespace ปัจจุบัน       | `kubectl config view --minify` (หรือคำสั่งใกล้เคียง) | `kk ns show`                                |
+| ดูรายการ pods               | `kubectl get pods -n <ns>`                           | `kk pods`                                   |
+| กรอง pods ตามชื่อ           | `kubectl get pods -n <ns> (แล้ว grep api)`           | `kk pods api`                               |
+| ดู log ของ pod เดียว        | `kubectl logs -f pod-xyz -n <ns>`                    | `kk logs pod-xyz -f`                        |
+| ดู log ของหลาย pod พร้อมกัน | loop / xargs / เครื่องมืออย่าง `stern`               | `kk logs api -f` (ดึงทุก pod ที่ชื่อ match) |
+| exec เข้า pod               | `kubectl exec -ti pod-xyz -n <ns> -- /bin/sh`        | `kk sh pod-xyz`                             |
+| ดู service                  | `kubectl get svc -n <ns>`                            | `kk svc`                                    |
+| restart deployment          | `kubectl rollout restart deploy/api -n <ns>`         | `kk restart api`                            |
+| สรุปรายละเอียด deployments  | `kubectl get deploy -n <ns> -o json + jq ...`        | `kk deploys`                                |
+| ดู contexts                 | `kubectl config get-contexts`                        | `kk ctx list` / `kk ctx`                    |
+| เปลี่ยน context             | `kubectl config use-context myctx`                   | `kk ctx use myctx` / `kk ctx myctx`         |
 
 ---
 
