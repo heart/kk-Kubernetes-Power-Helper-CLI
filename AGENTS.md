@@ -109,7 +109,8 @@ kk pods
 
   is the **single source of truth** for the active namespace inside `kk`.
 
-- **No files are used** to store namespace (no `~/.kk`, no on-disk config).
+- **No files are used** to store the *current* namespace.
+- **Exception**: Optional configuration files (e.g. `~/.kk-bindings`) may be used to store persistent mappings (e.g. namespace -> kubeconfig), but the active state remains per-shell.
 
 ---
 
@@ -145,6 +146,24 @@ All commands implicitly use the namespace from `_kk_current_namespace()`
   - If `fzf` exists: interactive picker with header showing the current namespace.
   - Otherwise: print numbered list and prompt for index.
   - The selected namespace is written into `KK_NAMESPACE` (no files touched).
+
+### Namespace Binding (Persistent Kubeconfig)
+
+- `kk bind <namespace> <kubeconfig>`
+  - Associates a namespace with a specific kubeconfig file.
+  - Stored in `~/.kk-bindings` (or `$KK_HOME/.kk-bindings`).
+
+- `kk unbind <namespace>`
+  - Removes the binding.
+
+- `kk bindings`
+  - Lists all bindings.
+
+- **Behavior**:
+  - When `kk ns set <ns>` is called (or `ns` selected via list), `kk` checks for a binding.
+  - If found, `KK_KUBECONFIG` env var is set in the shell.
+  - If not found, `KK_KUBECONFIG` is unset (defaulting to standard kubectl behavior).
+  - All `kubectl` calls are wrapped to inject `--kubeconfig "$KK_KUBECONFIG"` if set.
 
 ### Pods & Services
 

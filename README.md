@@ -138,9 +138,31 @@ This transforms multi-replica debugging:
 
 You stop “hunting logs” and start “following evidence”.
 
+You stop “hunting logs” and start “following evidence”.
+
 ---
 
-### 🔹 4. Troubleshooting Helpers
+### 🔹 4. Persistent Kubeconfig per Namespace
+
+Working with multiple clusters?
+`kk` can bind specific namespaces to specific kubeconfig files.
+
+```bash
+kk bind my-prod-ns ~/.kube/prod-config
+```
+
+Now, whenever you switch to `my-prod-ns`:
+
+```bash
+kk ns set my-prod-ns
+```
+
+`kk` automatically sets the `--kubeconfig` flag for you.
+Switch back to `default`, and it reverts to your default config.
+
+---
+
+### 🔹 5. Troubleshooting Helpers
 
 Useful shortcuts you actually use daily:
 
@@ -194,6 +216,9 @@ Same kubectl semantics.
 | `top`         | `kk top [pattern]`                                                                    | Show CPU and memory usage for pods in the current namespace using `kubectl top pod`. If `pattern` is provided, it is used as a regex filter on the pod name column while keeping the header row.                                                                                                                          |
 | `events`      | `kk events`                                                                           | List recent events in the current namespace. Tries to sort by `.lastTimestamp`, falling back to `.metadata.creationTimestamp` if needed. Useful for quick troubleshooting of failures and restarts.                                                                                                                       |
 | `deploys`     | `kk deploys`                                                                          | Summarize deployments in the current namespace. With `jq` installed, prints a compact table of deployment `NAME`, `READY/desired` replicas, and the first container image; otherwise falls back to `kubectl get deploy`.                                                                                                  |
+| `bind`        | `kk bind <namespace> <kubeconfig>`                                                    | Bind a namespace to a specific kubeconfig file. Automatically uses this config when the namespace is active.                                                                                                                                                                                                              |
+| `unbind`      | `kk unbind <namespace>`                                                               | Remove the binding for a namespace.                                                                                                                                                                                                                                                                                       |
+| `bindings`    | `kk bindings`                                                                         | List all current namespace bindings.                                                                                                                                                                                                                                                                                      |
 | `ctx`         | `kk ctx [list \| use \| show] [...]`                                                  | Manage `kubectl` contexts. `list` (or no args) shows all contexts, `use <name>` switches contexts, and `show [name]` prints the context’s details (defaulting to the current context).                                                                                                                                    |
 | `help`        | `kk help` / `kk -h` / `kk --help`                                                     | Display the built-in usage help, including a summary of all subcommands, arguments, and notes about namespace and regex-based pattern matching.                                                                                                                                                                           |
 

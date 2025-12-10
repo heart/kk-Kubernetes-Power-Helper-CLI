@@ -59,6 +59,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
+
+BACKUP_PATH=""
+
 LOCAL_SOURCE=""
 if [[ "$KK_URL" == file://* ]]; then
   LOCAL_SOURCE="${KK_URL#file://}"
@@ -132,3 +135,27 @@ if [[ "$IS_DARWIN" -eq 1 ]]; then
 [kk-installer]   source "$INSTALL_PATH"
 EOF
 fi
+
+
+if [[ -n "$BACKUP_PATH" && -f "$BACKUP_PATH" ]]; then
+  echo ""
+  echo "[kk-installer] A backup was created at: $BACKUP_PATH"
+  
+  # Try to read from /dev/tty to support curl | bash
+  if [[ -c /dev/tty ]]; then
+    exec < /dev/tty
+  fi
+  
+  if [[ -t 0 ]]; then
+    read -r -p "[kk-installer] Do you want to delete this backup? [y/N] " response
+    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+      rm "$BACKUP_PATH"
+      echo "[kk-installer] Backup deleted."
+    else
+      echo "[kk-installer] Backup kept."
+    fi
+  else
+    echo "[kk-installer] Non-interactive session, backup kept."
+  fi
+fi
+
