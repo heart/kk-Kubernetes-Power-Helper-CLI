@@ -141,18 +141,20 @@ if [[ -n "$BACKUP_PATH" && -f "$BACKUP_PATH" ]]; then
   echo ""
   echo "[kk-installer] A backup was created at: $BACKUP_PATH"
   
-  # Try to read from /dev/tty to support curl | bash
   if [[ -c /dev/tty ]]; then
-    exec < /dev/tty
-  fi
-  
-  if [[ -t 0 ]]; then
-    read -r -p "[kk-installer] Do you want to delete this backup? [y/N] " response
-    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-      rm "$BACKUP_PATH"
-      echo "[kk-installer] Backup deleted."
+    # Interactive mode: explicitly read from /dev/tty to handle curl | bash cases
+    # without breaking the pipe for the script itself.
+    printf "[kk-installer] Do you want to delete this backup? [y/N] " > /dev/tty
+    if read -r response < /dev/tty; then
+      if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        rm "$BACKUP_PATH"
+        echo "[kk-installer] Backup deleted."
+      else
+        echo "[kk-installer] Backup kept."
+      fi
     else
-      echo "[kk-installer] Backup kept."
+      echo ""
+      echo "[kk-installer] Failed to read input, backup kept."
     fi
   else
     echo "[kk-installer] Non-interactive session, backup kept."
