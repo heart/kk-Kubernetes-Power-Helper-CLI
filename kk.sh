@@ -114,6 +114,7 @@ Usage:
   kk restart <deploy-pattern>               Rollout restart matching deployment
   kk pf <pod-pattern> <local:remote>        Port-forward to matching pod
   kk desc <pod-pattern>                     Describe a pod
+  kk delete <pod-pattern>                   Delete a pod selected by pattern
   kk top [pattern]                          Show resource usage (optional filter)
   kk ctx [list|use|show] [...]              Manage _kk_kubectl contexts (list/use/show details)
   kk events                                 List recent namespace events
@@ -508,6 +509,26 @@ kk_cmd_desc() {
   _kk_kubectl describe pod "$pod" -n "$NAMESPACE"
 }
 
+kk_cmd_delete() {
+  local NAMESPACE
+  NAMESPACE=$(_kk_current_namespace)
+
+  if [[ $# -lt 1 ]]; then
+    echo "Usage: kk delete <pod-pattern>" >&2
+    return 1
+  fi
+
+  local pattern="$1"
+  local pod
+  pod=$(select_pod_by_pattern "$pattern") || return 1
+
+  echo "Deleting pod: $pod (namespace: $NAMESPACE)" >&2
+  if ! _kk_kubectl delete pod -n "$NAMESPACE" "$pod"; then
+    echo "Failed to delete pod: $pod" >&2
+    return 1
+  fi
+}
+
 kk_cmd_top() {
   local pattern="${1:-}"
   local NAMESPACE
@@ -648,6 +669,7 @@ kk() {
     restart|rollout)          kk_cmd_restart "$@" ;;
     pf|port-forward|portforward) kk_cmd_pf "$@" ;;
     desc|describe)            kk_cmd_desc "$@" ;;
+    delete|del)               kk_cmd_delete "$@" ;;
     top|usage|resources)      kk_cmd_top "$@" ;;
     events|event)             kk_cmd_events "$@" ;;
     deploys|deploy|deployments) kk_cmd_deploys "$@" ;;
