@@ -22,6 +22,36 @@ Just **fewer keystrokes, more clarity, and faster debugging**.
 
 ---
 
+## Installation
+
+### Simple install
+
+```
+git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
+cd kk-Kubernetes-Power-Helper-CLI
+cp kk.sh ~/.kk.sh
+echo 'source ~/.kk.sh' >> ~/.bashrc   # or the shell RC you actually use
+# open a new shell (or `source ~/.bashrc`) and start running kk commands
+```
+
+### One-liner
+
+```
+curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/install-kk.sh | sudo bash
+# reload your shell so the kk() function from /etc/profile.d/kk.sh is available
+# on macOS, the installer will remind you to add:  source /usr/local/lib/kk.sh  to ~/.zshrc (or similar)
+```
+
+### Uninstall
+
+```
+curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/uninstall-kk.sh | sudo bash
+```
+
+Or, if you installed manually, just delete the sourced script (e.g. `rm ~/.kk.sh`) and remove the `source ~/.kk.sh` line from your shell rc file.
+
+---
+
 ## Key Strengths of kk
 
 ### 🔹 1. Namespace that remembers itself
@@ -265,35 +295,6 @@ Same kubectl semantics.
 ---
 
 ## Installation
-
-### Simple install
-
-```
-git clone git@github.com:heart/kk-Kubernetes-Power-Helper-CLI.git
-cd kk-Kubernetes-Power-Helper-CLI
-cp kk.sh ~/.kk.sh
-echo 'source ~/.kk.sh' >> ~/.bashrc   # or the shell RC you actually use
-# open a new shell (or `source ~/.bashrc`) and start running kk commands
-```
-
-### One-liner
-
-```
-curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/install-kk.sh | sudo bash
-# reload your shell so the kk() function from /etc/profile.d/kk.sh is available
-# on macOS, the installer will remind you to add:  source /usr/local/lib/kk.sh  to ~/.zshrc (or similar)
-```
-
-### Uninstall
-
-```
-curl -fsSL https://raw.githubusercontent.com/heart/kk-Kubernetes-Power-Helper-CLI/main/uninstall-kk.sh | sudo bash
-```
-
-Or, if you installed manually, just delete the sourced script (e.g. `rm ~/.kk.sh`) and remove the `source ~/.kk.sh` line from your shell rc file.
-
----
-
 ## Getting Started
 
 ```
